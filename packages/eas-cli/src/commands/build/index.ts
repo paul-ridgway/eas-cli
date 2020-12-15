@@ -7,8 +7,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { configureAsync } from '../../build/configure';
 import { createCommandContextAsync } from '../../build/context';
 import { buildAsync } from '../../build/create';
-import { AnalyticsEvent, RequestedPlatform } from '../../build/types';
-import Analytics from '../../build/utils/analytics';
+import { RequestedPlatform } from '../../build/types';
+import Analytics, { Event } from '../../build/utils/analytics';
 import { isGitStatusCleanAsync } from '../../build/utils/repository';
 import { learnMore } from '../../log';
 import {
@@ -72,7 +72,7 @@ export default class Build extends Command {
       tracking_id: uuidv4(),
       requested_platform: flags.platform,
     };
-    Analytics.logEvent(AnalyticsEvent.BUILD_COMMAND, trackingCtx);
+    Analytics.logEvent(Event.BUILD_COMMAND, trackingCtx);
 
     const commandCtx = await createCommandContextAsync({
       requestedPlatform: platform,

@@ -1,5 +1,5 @@
-import { Actor } from '../User';
-import { ensureActorHasUsername, getActorDisplayName } from '../actions';
+import { Actor, getActorDisplayName } from '../User';
+import { ensureActorHasUsername } from '../actions';
 
 const userStub: Actor = {
   __typename: 'User',
