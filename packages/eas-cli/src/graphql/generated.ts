@@ -505,13 +505,11 @@ export type User = Actor & {
   created?: Maybe<Scalars['DateTime']>;
   lastLogin?: Maybe<Scalars['DateTime']>;
   lastPasswordReset?: Maybe<Scalars['DateTime']>;
-  bio?: Maybe<Scalars['String']>;
   industry?: Maybe<Scalars['String']>;
   location?: Maybe<Scalars['String']>;
   appCount?: Maybe<Scalars['Int']>;
   githubUsername?: Maybe<Scalars['String']>;
   twitterUsername?: Maybe<Scalars['String']>;
-  personalLink?: Maybe<Scalars['String']>;
   appetizeCode?: Maybe<Scalars['String']>;
   emailVerified?: Maybe<Scalars['Boolean']>;
   isOnboarded?: Maybe<Scalars['Boolean']>;
@@ -684,7 +682,8 @@ export enum BuildStatus {
   InQueue = 'IN_QUEUE',
   InProgress = 'IN_PROGRESS',
   Errored = 'ERRORED',
-  Finished = 'FINISHED'
+  Finished = 'FINISHED',
+  Canceled = 'CANCELED'
 }
 
 /** Represents an EAS Build */
@@ -792,8 +791,15 @@ export type IosAppCredentials = {
   app: App;
   appleTeam?: Maybe<AppleTeam>;
   appleAppIdentifier: AppleAppIdentifier;
-  iosAppBuildCredentialsArray: Array<IosAppBuildCredentials>;
+  iosAppBuildCredentialsList: Array<IosAppBuildCredentials>;
   pushKey?: Maybe<ApplePushKey>;
+  /** @deprecated use iosAppBuildCredentialsList instead */
+  iosAppBuildCredentialsArray: Array<IosAppBuildCredentials>;
+};
+
+
+export type IosAppCredentialsIosAppBuildCredentialsListArgs = {
+  filter?: Maybe<IosAppBuildCredentialsFilter>;
 };
 
 
@@ -830,6 +836,7 @@ export type AppleAppIdentifier = {
   account: Account;
   appleTeam?: Maybe<AppleTeam>;
   bundleIdentifier: Scalars['String'];
+  parentAppleAppIdentifier?: Maybe<AppleAppIdentifier>;
 };
 
 export type AppleDistributionCertificate = {
@@ -846,17 +853,18 @@ export type AppleDistributionCertificate = {
   certificatePrivateSigningKey?: Maybe<Scalars['String']>;
   createdAt: Scalars['DateTime'];
   updatedAt: Scalars['DateTime'];
+  iosAppBuildCredentialsList: Array<IosAppBuildCredentials>;
 };
 
-export type ApplePushKey = {
-  __typename?: 'ApplePushKey';
+export type IosAppBuildCredentials = {
+  __typename?: 'IosAppBuildCredentials';
   id: Scalars['ID'];
-  account: Account;
-  appleTeam?: Maybe<AppleTeam>;
-  keyIdentifier: Scalars['String'];
-  keyP8: Scalars['String'];
-  createdAt: Scalars['DateTime'];
-  updatedAt: Scalars['DateTime'];
+  distributionCertificate?: Maybe<AppleDistributionCertificate>;
+  provisioningProfile?: Maybe<AppleProvisioningProfile>;
+  iosDistributionType: IosDistributionType;
+  iosAppCredentials: IosAppCredentials;
+  /** @deprecated Get Apple Devices from AppleProvisioningProfile instead */
+  appleDevices?: Maybe<Array<Maybe<AppleDevice>>>;
 };
 
 export type AppleProvisioningProfile = {
@@ -893,10 +901,6 @@ export enum AppleDeviceClass {
   Iphone = 'IPHONE'
 }
 
-export type IosAppBuildCredentialsFilter = {
-  iosDistributionType?: Maybe<IosDistributionType>;
-};
-
 export enum IosDistributionType {
   AppStore = 'APP_STORE',
   Enterprise = 'ENTERPRISE',
@@ -904,14 +908,19 @@ export enum IosDistributionType {
   Development = 'DEVELOPMENT'
 }
 
-export type IosAppBuildCredentials = {
-  __typename?: 'IosAppBuildCredentials';
+export type ApplePushKey = {
+  __typename?: 'ApplePushKey';
   id: Scalars['ID'];
-  distributionCertificate?: Maybe<AppleDistributionCertificate>;
-  provisioningProfile?: Maybe<AppleProvisioningProfile>;
-  iosDistributionType: IosDistributionType;
-  /** @deprecated Get Apple Devices from AppleProvisioningProfile instead */
-  appleDevices?: Maybe<Array<Maybe<AppleDevice>>>;
+  account: Account;
+  appleTeam?: Maybe<AppleTeam>;
+  keyIdentifier: Scalars['String'];
+  keyP8: Scalars['String'];
+  createdAt: Scalars['DateTime'];
+  updatedAt: Scalars['DateTime'];
+};
+
+export type IosAppBuildCredentialsFilter = {
+  iosDistributionType?: Maybe<IosDistributionType>;
 };
 
 export type AndroidAppCredentialsFilter = {
@@ -925,8 +934,10 @@ export type AndroidAppCredentials = {
   app: App;
   applicationIdentifier?: Maybe<Scalars['String']>;
   androidFcm?: Maybe<AndroidFcm>;
-  androidAppBuildCredentialsArray: Array<AndroidAppBuildCredentials>;
+  androidAppBuildCredentialsList: Array<AndroidAppBuildCredentials>;
   isLegacy: Scalars['Boolean'];
+  /** @deprecated use androidAppBuildCredentialsList instead */
+  androidAppBuildCredentialsArray: Array<AndroidAppBuildCredentials>;
 };
 
 export type AndroidFcm = {
@@ -1447,6 +1458,8 @@ export type RootMutation = {
   asset: AssetMutation;
   /** Mutations that modify an BuildJob */
   buildJob?: Maybe<BuildJobMutation>;
+  /** Mutations that modify an EAS Build */
+  build?: Maybe<BuildMutation>;
   /** Mutations that modify the build credentials for an iOS app */
   iosAppBuildCredentials: IosAppBuildCredentialsMutation;
   /** Mutations that modify the credentials for an iOS app */
@@ -1476,6 +1489,11 @@ export type RootMutationAppArgs = {
 
 
 export type RootMutationBuildJobArgs = {
+  buildId: Scalars['ID'];
+};
+
+
+export type RootMutationBuildArgs = {
   buildId: Scalars['ID'];
 };
 
@@ -1814,6 +1832,7 @@ export type AppleAppIdentifierMutationCreateAppleAppIdentifierArgs = {
 export type AppleAppIdentifierInput = {
   bundleIdentifier: Scalars['String'];
   appleTeamId?: Maybe<Scalars['ID']>;
+  parentAppleAppId?: Maybe<Scalars['ID']>;
 };
 
 export type AppleDeviceMutation = {
@@ -1902,6 +1921,8 @@ export type AppleProvisioningProfileMutation = {
   updateAppleProvisioningProfile: AppleProvisioningProfile;
   /** Delete a Provisioning Profile */
   deleteAppleProvisioningProfile: DeleteAppleProvisioningProfileResult;
+  /** Delete Provisioning Profiles */
+  deleteAppleProvisioningProfiles: Array<DeleteAppleProvisioningProfileResult>;
 };
 
 
@@ -1920,6 +1941,11 @@ export type AppleProvisioningProfileMutationUpdateAppleProvisioningProfileArgs =
 
 export type AppleProvisioningProfileMutationDeleteAppleProvisioningProfileArgs = {
   id: Scalars['ID'];
+};
+
+
+export type AppleProvisioningProfileMutationDeleteAppleProvisioningProfilesArgs = {
+  ids: Array<Scalars['ID']>;
 };
 
 export type AppleProvisioningProfileInput = {
@@ -2023,6 +2049,12 @@ export type BuildJobMutation = {
   cancel?: Maybe<BuildJob>;
   del?: Maybe<BuildJob>;
   restart?: Maybe<BuildJob>;
+};
+
+export type BuildMutation = {
+  __typename?: 'BuildMutation';
+  /** Cancel an EAS Build" */
+  cancel: Build;
 };
 
 export type IosAppBuildCredentialsMutation = {
@@ -2345,6 +2377,8 @@ export type MeMutation = {
   updateApp?: Maybe<App>;
   /** Unpublish an App that the current user owns */
   unpublishApp?: Maybe<App>;
+  /** Transfer project to a different Account */
+  transferApp: App;
   /** Delete a Snack that the current user owns */
   deleteSnack?: Maybe<Snack>;
   /** Create a new Account and grant this User the owner Role */
@@ -2386,6 +2420,12 @@ export type MeMutationUpdateAppArgs = {
 
 export type MeMutationUnpublishAppArgs = {
   appId: Scalars['ID'];
+};
+
+
+export type MeMutationTransferAppArgs = {
+  appId: Scalars['ID'];
+  destinationAccountId: Scalars['ID'];
 };
 
 
@@ -2453,12 +2493,10 @@ export type MeMutationDisableSecondFactorAuthenticationArgs = {
 export type UserDataInput = {
   id?: Maybe<Scalars['ID']>;
   username?: Maybe<Scalars['String']>;
-  bio?: Maybe<Scalars['String']>;
   industry?: Maybe<Scalars['String']>;
   location?: Maybe<Scalars['String']>;
   githubUsername?: Maybe<Scalars['String']>;
   twitterUsername?: Maybe<Scalars['String']>;
-  personalLink?: Maybe<Scalars['String']>;
   email?: Maybe<Scalars['String']>;
   firstName?: Maybe<Scalars['String']>;
   lastName?: Maybe<Scalars['String']>;
@@ -2681,6 +2719,22 @@ export type CreateAppleDistributionCertificateMutation = (
   ) }
 );
 
+export type DeleteAppleDistributionCertificateMutationVariables = Exact<{
+  appleDistributionCertificateId: Scalars['ID'];
+}>;
+
+
+export type DeleteAppleDistributionCertificateMutation = (
+  { __typename?: 'RootMutation' }
+  & { appleDistributionCertificate: (
+    { __typename?: 'AppleDistributionCertificateMutation' }
+    & { deleteAppleDistributionCertificate: (
+      { __typename?: 'DeleteAppleDistributionCertificateResult' }
+      & Pick<DeleteAppleDistributionCertificateResult, 'id'>
+    ) }
+  ) }
+);
+
 export type CreateAppleProvisioningProfileMutationVariables = Exact<{
   appleProvisioningProfileInput: AppleProvisioningProfileInput;
   accountId: Scalars['ID'];
@@ -2725,6 +2779,22 @@ export type UpdateAppleProvisioningProfileMutation = (
       )> }
       & AppleProvisioningProfileFragment
     ) }
+  ) }
+);
+
+export type DeleteAppleProvisioningProfilesMutationVariables = Exact<{
+  appleProvisioningProfileIds: Array<Scalars['ID']>;
+}>;
+
+
+export type DeleteAppleProvisioningProfilesMutation = (
+  { __typename?: 'RootMutation' }
+  & { appleProvisioningProfile: (
+    { __typename?: 'AppleProvisioningProfileMutation' }
+    & { deleteAppleProvisioningProfiles: Array<(
+      { __typename?: 'DeleteAppleProvisioningProfileResult' }
+      & Pick<DeleteAppleProvisioningProfileResult, 'id'>
+    )> }
   ) }
 );
 
@@ -2991,11 +3061,6 @@ export type AppleDistributionCertificateByAccountQuery = (
       & { appleDistributionCertificates: Array<(
         { __typename?: 'AppleDistributionCertificate' }
         & Pick<AppleDistributionCertificate, 'id'>
-        & { appleTeam?: Maybe<(
-          { __typename?: 'AppleTeam' }
-          & Pick<AppleTeam, 'id'>
-          & AppleTeamFragment
-        )> }
         & AppleDistributionCertificateFragment
       )> }
     ) }
@@ -3343,7 +3408,7 @@ export type CurrentUserQuery = (
 
 export type AppFragment = (
   { __typename?: 'App' }
-  & Pick<App, 'id' | 'fullName'>
+  & Pick<App, 'id' | 'fullName' | 'slug'>
 );
 
 export type AppleAppIdentifierFragment = (
@@ -3363,10 +3428,31 @@ export type AppleDeviceRegistrationRequestFragment = (
 
 export type AppleDistributionCertificateFragment = (
   { __typename?: 'AppleDistributionCertificate' }
-  & Pick<AppleDistributionCertificate, 'id' | 'certificateP12' | 'certificatePassword' | 'serialNumber' | 'developerPortalIdentifier' | 'validityNotBefore' | 'validityNotAfter'>
+  & Pick<AppleDistributionCertificate, 'id' | 'certificateP12' | 'certificatePassword' | 'serialNumber' | 'developerPortalIdentifier' | 'validityNotBefore' | 'validityNotAfter' | 'updatedAt'>
   & { appleTeam?: Maybe<(
     { __typename?: 'AppleTeam' }
-    & Pick<AppleTeam, 'id' | 'appleTeamIdentifier' | 'appleTeamName'>
+    & Pick<AppleTeam, 'id'>
+    & AppleTeamFragment
+  )>, iosAppBuildCredentialsList: Array<(
+    { __typename?: 'IosAppBuildCredentials' }
+    & Pick<IosAppBuildCredentials, 'id'>
+    & { iosAppCredentials: (
+      { __typename?: 'IosAppCredentials' }
+      & Pick<IosAppCredentials, 'id'>
+      & { app: (
+        { __typename?: 'App' }
+        & Pick<App, 'id'>
+        & AppFragment
+      ), appleAppIdentifier: (
+        { __typename?: 'AppleAppIdentifier' }
+        & Pick<AppleAppIdentifier, 'id'>
+        & AppleAppIdentifierFragment
+      ) }
+    ), provisioningProfile?: Maybe<(
+      { __typename?: 'AppleProvisioningProfile' }
+      & Pick<AppleProvisioningProfile, 'id'>
+      & AppleProvisioningProfileIdentifiersFragment
+    )> }
   )> }
 );
 
@@ -3380,6 +3466,11 @@ export type AppleProvisioningProfileFragment = (
     { __typename?: 'AppleDevice' }
     & Pick<AppleDevice, 'id' | 'identifier' | 'name' | 'model' | 'deviceClass'>
   )> }
+);
+
+export type AppleProvisioningProfileIdentifiersFragment = (
+  { __typename?: 'AppleProvisioningProfile' }
+  & Pick<AppleProvisioningProfile, 'id' | 'developerPortalIdentifier'>
 );
 
 export type AppleTeamFragment = (
